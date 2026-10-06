@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸運大轉盤 - 互動抽獎與決策神器</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px rgba(236, 72, 153, 0.4);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.8);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- Header Navigation -->
+    <header class="w-full py-4 px-6 glass-card sticky top-0 z-30 flex justify-between items-center border-b border-slate-700/50">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-violet-600 flex items-center justify-center text-white text-xl shadow-lg shadow-pink-500/30">
+                <i class="fa-solid fa-arrows-spin animate-spin-slow"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-400 bg-clip-text text-transparent">
+                    幸運大轉盤
+                </h1>
+                <p class="text-xs text-slate-400">隨機抽獎 · 團康決策 · 自訂選項</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="soundToggleBtn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center space-x-1.5 border border-slate-700">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-pink-400"></i>
+                <span class="text-xs font-semibold hidden sm:inline">音效開</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left Panel: Wheel Display (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col items-center justify-center space-y-6 glass-card p-6 rounded-3xl relative overflow-hidden">
+            <!-- Background Ambient Glow -->
+            <div class="absolute -top-20 -left-20 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -right-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Preset Quick Select -->
+            <div class="w-full flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/50 pb-4">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> 快速套用預設情境：
+                </span>
+                <div class="flex flex-wrap gap-2" id="presetButtons">
+                    <!-- Dynamic Preset Buttons Generated in JS -->
+                </div>
+            </div>
+
+            <!-- Wheel Container -->
+            <div class="relative flex items-center justify-center my-4">
+                <!-- Pointer / Indicator -->
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3 z-20 filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">
+                    <div class="w-8 h-10 bg-gradient-to-b from-amber-300 to-amber-500 clip-pointer"></div>
+                    <i class="fa-solid fa-caret-down text-amber-400 text-4xl absolute -top-1 left-1/2 -translate-x-1/2"></i>
+                </div>
+
+                <!-- Outer Decorative Ring -->
+                <div class="p-3 rounded-full bg-gradient-to-tr from-slate-800 via-slate-700 to-slate-800 shadow-2xl border border-slate-600/50 relative">
+                    <!-- Canvas Element -->
+                    <canvas id="wheelCanvas" width="480" height="480" class="max-w-full h-auto rounded-full cursor-pointer transition-transform duration-300 transform active:scale-98"></canvas>
+                    
+                    <!-- Center Spin Button / Hub -->
+                    <button id="spinBtn" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-pink-600 via-purple-600 to-indigo-600 text-white font-extrabold text-lg sm:text-xl shadow-xl flex flex-col items-center justify-center border-4 border-slate-900 hover:scale-105 active:scale-95 transition-all duration-200 z-10 group">
+                        <span>開始</span>
+                        <span class="text-[10px] tracking-widest font-normal opacity-80 group-hover:opacity-100">SPIN</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Controls & Options -->
+            <div class="w-full flex flex-wrap items-center justify-center gap-4 pt-2">
+                <button id="quickSpinBtn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold shadow-lg shadow-pink-500/20 transition flex items-center space-x-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>旋轉轉盤</span>
+                </button>
+                <button id="shuffleBtn" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition border border-slate-700 flex items-center space-x-2">
+                    <i class="fa-solid fa-shuffle"></i>
+                    <span>重排顏色/順序</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Right Panel: Customization & History (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col space-y-6">
+            
+            <!-- Items Editor Card -->
+            <div class="glass-card p-6 rounded-3xl flex flex-col space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-700/50 pb-3">
+                    <h2 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-pink-400"></i>
+                        自訂轉盤選項 (<span id="itemCount">0</span>)
+                    </h2>
+                    <button id="clearAllBtn" class="text-xs text-slate-400 hover:text-red-400 transition flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> 清空選項
+                    </button>
+                </div>
+
+                <!-- Input Field -->
+                <form id="addItemForm" class="flex gap-2">
+                    <input type="text" id="newItemInput" placeholder="輸入選項名稱 (例如: 炸雞)" class="flex-grow px-4 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 text-sm transition" maxlength="25" required>
+                    <button type="submit" class="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-semibold text-sm transition flex items-center gap-1 shrink-0">
+                        <i class="fa-solid fa-plus"></i> 新增
+                    </button>
+                </form>
+
+                <!-- Item List Container -->
+                <div id="itemsContainer" class="max-h-64 overflow-y-auto space-y-2 pr-1">
+                    <!-- Dynamic Item Badges -->
+                </div>
+            </div>
+
+            <!-- Spin History Log -->
+            <div class="glass-card p-6 rounded-3xl flex flex-col space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-700/50 pb-3">
+                    <h2 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
+                        抽獎歷史紀錄
+                    </h2>
+                    <button id="clearHistoryBtn" class="text-xs text-slate-400 hover:text-slate-200 transition">
+                        清除紀錄
+                    </button>
+                </div>
+
+                <div id="historyContainer" class="max-h-48 overflow-y-auto space-y-2 text-sm">
+                    <p class="text-slate-500 text-xs text-center py-4" id="emptyHistoryText">尚無抽獎紀錄，按下「開始」試試手氣吧！</p>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-4 text-center text-xs text-slate-500 border-t border-slate-800/80 mt-6">
+        <p>幸運大轉盤遊戲 &copy; 2026. 輕鬆隨機決策好幫手！</p>
+    </footer>
+
+    <!-- Result Winner Modal -->
+    <div id="resultModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div id="modalCard" class="bg-slate-900 border border-slate-700 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl transform scale-90 transition-all duration-300 relative overflow-hidden">
+            <!-- Confetti Canvas overlay inside modal -->
+            <canvas id="confettiCanvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+
+            <div class="relative z-10 flex flex-col items-center space-y-4">
+                <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 to-pink-500 flex items-center justify-center text-3xl text-white shadow-lg shadow-amber-500/30 animate-bounce">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                
+                <div>
+                    <p class="text-xs font-bold tracking-widest text-slate-400 uppercase">恭喜抽中結果！</p>
+                    <h3 id="winnerResultText" class="text-3xl font-black bg-gradient-to-r from-pink-400 via-amber-300 to-purple-400 bg-clip-text text-transparent mt-1 py-1">
+                        ---
+                    </h3>
+                </div>
+
+                <p class="text-xs text-slate-400">運氣太棒了！快準備執行抽中項目的任務吧 🎉</p>
+
+                <button id="closeModalBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold shadow-lg transition">
+                    太棒了！收下結果
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Color Palette Generator (HSL evenly distributed)
+        const generateColors = (count) => {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                const hue = Math.floor((360 / count) * i);
+                // Vibrant color with high saturation and balanced lightness
+                colors.push(`hsl(${hue}, 85%, 58%)`);
+            }
+            return colors;
+        };
+
+        // Preset List Data
+        const PRESETS = {
+            food: {
+                name: '🍔 今天吃什麼',
+                items: ['牛肉麵', '日式拉麵', '義大利麵', '韓式炸雞', '健康沙拉', '滷肉飯', '麥當勞', '火鍋', '壽司']
+            },
+            truthOrDare: {
+                name: '🎉 團康大冒險',
+                items: ['模仿動物叫聲', '喝一杯水', '深蹲 10 下', '大聲說真心話', '對左邊的人獻殷勤', '唱歌一段', '免受懲罰', '下一輪加倍']
+            },
+            luckyNumber: {
+                name: '🔢 幸運數字',
+                items: ['1 號', '2 號', '3 號', '4 號', '5 號', '6 號', '7 號', '8 號']
+            },
+            decision: {
+                name: '⚖️️ 簡單決定',
+                items: ['做！立刻執行', '不做，再想想', '交給命運再轉一次', '找朋友討論']
+            }
+        };
+
+        // App State
+        let items = [...PRESETS.food.items];
+        let colors = generateColors(items.length);
+        let isSpinning = false;
+        let currentAngle = 0; // In radians
+        let soundEnabled = true;
+        let historyLog = [];
+
+        // DOM Elements
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const quickSpinBtn = document.getElementById('quickSpinBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const itemsContainer = document.getElementById('itemsContainer');
+        const addItemForm = document.getElementById('addItemForm');
+        const newItemInput = document.getElementById('newItemInput');
+        const itemCount = document.getElementById('itemCount');
+        const presetButtons = document.getElementById('presetButtons');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const soundIcon = document.getElementById('soundIcon');
+        const historyContainer = document.getElementById('historyContainer');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const resultModal = document.getElementById('resultModal');
+        const modalCard = document.getElementById('modalCard');
+        const winnerResultText = document.getElementById('winnerResultText');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Web Audio Synthesizer
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playTickSound() {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.04);
+
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            } catch (e) {
+                // Ignore audio errors if blocked by browser policy
+            }
+        }
+
+        function playWinFanfare() {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.08);
+
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.08 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(audioCtx.currentTime + idx * 0.08);
+                    osc.stop(audioCtx.currentTime + idx * 0.08 + 0.35);
+                });
+            } catch (e) {}
+        }
+
+        function drawWheel() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = width / 2 - 12; // Leave padding for border
+            const numItems = items.length;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (numItems === 0) {
+                // Draw empty state
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = '#334155';
+                ctx.fill();
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = 'bold 20px "Noto Sans TC", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('請新增選項內容', centerX, centerY);
+                return;
+            }
+
+            const sliceAngle = (2 * Math.PI) / numItems;
+
+            // Draw Segments
+            for (let i = 0; i < numItems; i++) {
+                const startAngle = currentAngle + i * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+
+                // Slice Fill
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+
+                // Slice Border
+                ctx.strokeStyle = 'rgba(15, 23, 42, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw Text
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#FFFFFF';
+                
+                // Dynamic font size depending on text length & slice count
+                const fontSize = numItems > 12 ? 14 : numItems > 8 ? 16 : 18;
+                ctx.font = `bold ${fontSize}px "Noto Sans TC", sans-serif`;
+                
+                // Drop shadow for text readability
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                ctx.shadowBlur = 4;
+
+                const text = items[i];
+                // Truncate if text is too long
+                const maxTextLength = numItems > 12 ? 8 : 12;
+                const displayText = text.length > maxTextLength ? text.substring(0, maxTextLength) + '..' : text;
+
+                ctx.fillText(displayText, radius - 28, 0);
+                ctx.restore();
+            }
+
+            // Draw Outer Rim
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#f8fafc';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+
+            // Draw Outer Decorative Pins/Dots
+            for (let i = 0; i < numItems; i++) {
+                const pinAngle = currentAngle + i * sliceAngle;
+                const pinX = centerX + (radius - 2) * Math.cos(pinAngle);
+                const pinY = centerY + (radius - 2) * Math.sin(pinAngle);
+
+                ctx.beginPath();
+                ctx.arc(pinX, pinY, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // Draw Center Hub Shadow & Circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 36, 0, 2 * Math.PI);
+            ctx.fillStyle = '#0f172a';
+            ctx.fill();
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+        }
+
+        let spinVelocity = 0;
+        let friction = 0.988; // Deceleration rate
+        let lastSegmentIndex = -1;
+
+        function spinWheel() {
+            if (isSpinning || items.length === 0) return;
+
+            initAudio();
+            isSpinning = true;
+            spinBtn.disabled = true;
+            quickSpinBtn.disabled = true;
+
+            // Initial random impulse velocity
+            spinVelocity = Math.random() * 0.35 + 0.45; // 0.45 ~ 0.8 rad/frame
+
+            let lastTimestamp = performance.now();
+
+            function animate(timestamp) {
+                const delta = (timestamp - lastTimestamp) / 1000;
+                lastTimestamp = timestamp;
+
+                currentAngle += spinVelocity;
+                currentAngle %= (2 * Math.PI);
+
+                // Check Pointer Alignment & Play Tick Sound
+                const numItems = items.length;
+                const sliceAngle = (2 * Math.PI) / numItems;
+                // Pointer is at TOP (270deg or 3*PI/2)
+                const pointerAngle = (1.5 * Math.PI - currentAngle + 2 * Math.PI) % (2 * Math.PI);
+                const currentSegmentIndex = Math.floor(pointerAngle / sliceAngle) % numItems;
+
+                if (currentSegmentIndex !== lastSegmentIndex) {
+                    playTickSound();
+                    lastSegmentIndex = currentSegmentIndex;
+                }
+
+                // Apply Friction
+                spinVelocity *= friction;
+
+                drawWheel();
+
+                if (spinVelocity > 0.002) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // Spin finished
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                    quickSpinBtn.disabled = false;
+                    spinVelocity = 0;
+
+                    // Final Winner
+                    const winningIndex = currentSegmentIndex;
+                    const winner = items[winningIndex];
+
+                    onSpinComplete(winner);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function onSpinComplete(winner) {
+            playWinFanfare();
+
+            // Add to history
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            historyLog.unshift({ winner, time: timeStr });
+            renderHistory();
+
+            // Show Winner Modal
+            winnerResultText.textContent = winner;
+            resultModal.classList.remove('opacity-0', 'pointer-events-none');
+            modalCard.classList.remove('scale-90');
+            modalCard.classList.add('scale-100');
+
+            // Trigger Confetti
+            startConfetti();
+        }
+
+        /* Simple Canvas Confetti Effect */
+        function startConfetti() {
+            const confettiCanvas = document.getElementById('confettiCanvas');
+            const cCtx = confettiCanvas.getContext('2d');
+            confettiCanvas.width = modalCard.clientWidth;
+            confettiCanvas.height = modalCard.clientHeight;
+
+            const particles = [];
+            const particleCount = 60;
+            const colors = ['#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'];
+
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: confettiCanvas.width / 2,
+                    y: confettiCanvas.height / 2,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.7) * 12,
+                    size: Math.random() * 6 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    rSpeed: (Math.random() - 0.5) * 10,
+                    opacity: 1
+                });
+            }
+
+            let animationFrame;
+            function render() {
+                cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+                let alive = false;
+
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.3; // Gravity
+                    p.opacity -= 0.015;
+                    p.rotation += p.rSpeed;
+
+                    if (p.opacity > 0) {
+                        alive = true;
+                        cCtx.save();
+                        cCtx.translate(p.x, p.y);
+                        cCtx.rotate((p.rotation * Math.PI) / 180);
+                        cCtx.globalAlpha = Math.max(0, p.opacity);
+                        cCtx.fillStyle = p.color;
+                        cCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                        cCtx.restore();
+                    }
+                });
+
+                if (alive) {
+                    animationFrame = requestAnimationFrame(render);
+                }
+            }
+
+            render();
+        }
+
+        function renderItems() {
+            itemsContainer.innerHTML = '';
+            itemCount.textContent = items.length;
+
+            items.forEach((item, idx) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 hover:border-slate-600 transition group';
+                itemEl.innerHTML = `
+                    <div class="flex items-center space-x-3 truncate">
+                        <span class="w-4 h-4 rounded-full flex-shrink-0 shadow-sm" style="background-color: ${colors[idx % colors.length]}"></span>
+                        <span class="text-sm font-medium text-slate-200 truncate">${escapeHtml(item)}</span>
+                    </div>
+                    <button onclick="removeItem(${idx})" class="text-slate-500 hover:text-red-400 p-1 rounded-lg transition opacity-80 group-hover:opacity-100" title="刪除此選項">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                `;
+                itemsContainer.appendChild(itemEl);
+            });
+
+            drawWheel();
+        }
+
+        function renderPresets() {
+            presetButtons.innerHTML = '';
+            Object.keys(PRESETS).forEach(key => {
+                const preset = PRESETS[key];
+                const btn = document.createElement('button');
+                btn.className = 'px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition';
+                btn.textContent = preset.name;
+                btn.onclick = () => loadPreset(key);
+                presetButtons.appendChild(btn);
+            });
+        }
+
+        function loadPreset(key) {
+            if (isSpinning) return;
+            if (PRESETS[key]) {
+                items = [...PRESETS[key].items];
+                colors = generateColors(items.length);
+                renderItems();
+            }
+        }
+
+        function removeItem(index) {
+            if (isSpinning) return;
+            items.splice(index, 1);
+            colors = generateColors(items.length);
+            renderItems();
+        }
+
+        function renderHistory() {
+            historyContainer.innerHTML = '';
+            if (historyLog.length === 0) {
+                historyContainer.innerHTML = `<p class="text-slate-500 text-xs text-center py-4">尚無抽獎紀錄，按下「開始」試試手氣吧！</p>`;
+                return;
+            }
+
+            historyLog.forEach((entry, idx) => {
+                const logEl = document.createElement('div');
+                logEl.className = 'flex items-center justify-between p-2 rounded-lg bg-slate-900/40 border border-slate-800 text-xs';
+                logEl.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="text-pink-400 font-bold">#${historyLog.length - idx}</span>
+                        <span class="text-slate-200 font-semibold">${escapeHtml(entry.winner)}</span>
+                    </div>
+                    <span class="text-slate-500 text-[10px]">${entry.time}</span>
+                `;
+                historyContainer.appendChild(logEl);
+            });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+
+        // Spin Trigger Events
+        spinBtn.addEventListener('click', spinWheel);
+        quickSpinBtn.addEventListener('click', spinWheel);
+        canvas.addEventListener('click', spinWheel);
+
+        // Add Item Form
+        addItemForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (isSpinning) return;
+
+            const value = newItemInput.value.trim();
+            if (value) {
+                items.push(value);
+                colors = generateColors(items.length);
+                newItemInput.value = '';
+                renderItems();
+            }
+        });
+
+        // Clear All Items
+        clearAllBtn.addEventListener('click', () => {
+            if (isSpinning) return;
+            items = [];
+            colors = [];
+            renderItems();
+        });
+
+        // Shuffle Colors & Items
+        shuffleBtn.addEventListener('click', () => {
+            if (isSpinning || items.length === 0) return;
+            // Fisher-Yates Shuffle
+            for (let i = items.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [items[i], items[j]] = [items[j], items[i]];
+            }
+            colors = generateColors(items.length);
+            renderItems();
+        });
+
+        // Sound Toggle
+        soundToggleBtn.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            if (soundEnabled) {
+                soundIcon.className = 'fa-solid fa-volume-high text-pink-400';
+                soundToggleBtn.querySelector('span').textContent = '音效開';
+            } else {
+                soundIcon.className = 'fa-solid fa-volume-xmark text-slate-500';
+                soundToggleBtn.querySelector('span').textContent = '音效關';
+            }
+        });
+
+        // Clear History Log
+        clearHistoryBtn.addEventListener('click', () => {
+            historyLog = [];
+            renderHistory();
+        });
+
+        // Close Result Modal
+        closeModalBtn.addEventListener('click', () => {
+            resultModal.classList.add('opacity-0', 'pointer-events-none');
+            modalCard.classList.remove('scale-100');
+            modalCard.classList.add('scale-90');
+        });
+
+        // Window Resize Handling
+        window.addEventListener('resize', () => {
+            drawWheel();
+        });
+
+        // Initial setup on window load
+        window.onload = () => {
+            renderPresets();
+            renderItems();
+            renderHistory();
+        };
+    </script>
+</body>
+</html>
